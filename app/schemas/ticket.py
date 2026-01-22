@@ -10,8 +10,8 @@ class TicketReadSchema(BaseModel):
     id: int
     title: str
     message: str
-    priority: int
-    status: str
+    priority: int | None = None
+    status: str | None = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
 

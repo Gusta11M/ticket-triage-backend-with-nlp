@@ -10,4 +10,4 @@ def starup():
     Base.metadata.create_all(bind=engine)
 
     
-app.include_router(tickets.router, prefix="/tickets", tags=["Tickets"])
+app.include_router(tickets.router, tags=["Tickets"])

@@ -6,10 +6,11 @@ from app.db.dependencies import get_db
 from app.schemas.ticket import TicketCreateSchema, TicketReadSchema
 from app.services.ticket import create_ticket_service
 
+prefix = "/tickets"
 
-router = APIRouter()
+router = APIRouter(prefix=prefix)
 
-@router.post("/tickets", response_model=TicketReadSchema)
+@router.post("/", response_model=TicketReadSchema)
 def create_ticket(
     ticket: TicketCreateSchema, db: Session = Depends(get_db)
 ):
