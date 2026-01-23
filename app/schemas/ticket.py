@@ -1,10 +1,10 @@
 
 import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class TicketCreateSchema(BaseModel):
-    title: str
-    message: str
+    title: str = Field(..., example="Sample Ticket Title", max_length=255, min_length=5)
+    message: str = Field(..., example="This is a sample ticket message.", min_length=10)
 
 class TicketReadSchema(BaseModel):
     id: int

@@ -3,7 +3,7 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.ticket import Ticket
-from app.schemas.ticket import TicketCreateSchema
+from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema
 
 
 def create_ticket(db: Session, ticket: TicketCreateSchema) -> Ticket:
@@ -16,4 +16,23 @@ def create_ticket(db: Session, ticket: TicketCreateSchema) -> Ticket:
     db.add(db_ticket)
     db.commit()
     db.refresh(db_ticket)
+    return db_ticket
+
+def get_ticket(db: Session, ticket_id: int) -> Ticket:
+    return db.query(Ticket).filter(Ticket.id == ticket_id).first()
+
+def get_tickets(db: Session, skip: int = 0, limit: int = 100) -> list[Ticket]:
+    return db.query(Ticket).offset(skip).limit(limit).all()
+
+def update_ticket(db: Session, ticket_id: int, ticket: TicketUpdateSchema) -> Ticket:
+    db_ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if db_ticket:
+        db_ticket.title = ticket.title
+        db_ticket.message = ticket.message
+        db_ticket.priority = ticket.priority
+        db_ticket.status = ticket.status
+        db_ticket.category = ticket.category
+        db_ticket.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_ticket)
     return db_ticket

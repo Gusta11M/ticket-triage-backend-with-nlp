@@ -1,0 +1,12 @@
+
+from datetime import datetime
+from sqlalchemy import Column, DateTime, Integer, String
+from app.db.session import Base
+
+class Category (Base):
+    
+    __tablename__ = "Category"
+
+    id = Column(Integer, primary_key=True, index=True)
+    Category_name = Column(String, unique=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
