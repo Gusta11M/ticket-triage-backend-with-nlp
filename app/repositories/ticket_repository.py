@@ -1,31 +1,36 @@
-
-
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.models.ticket import Ticket
+from app.models.ticketStatus import TicketStatus
 from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema
 
-
-def create_ticket(db: Session, ticket: TicketCreateSchema) -> Ticket:
+async def create_ticket(db: AsyncSession, ticket: TicketCreateSchema) -> Ticket:
     db_ticket = Ticket(
         title=ticket.title,
         message=ticket.message,
+        status=TicketStatus.OPEN.value,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
     db.add(db_ticket)
-    db.commit()
-    db.refresh(db_ticket)
+    await db.commit()
+    await db.refresh(db_ticket)
     return db_ticket
 
-def get_ticket(db: Session, ticket_id: int) -> Ticket:
-    return db.query(Ticket).filter(Ticket.id == ticket_id).first()
+async def get_ticket(db: AsyncSession, ticket_id: int) -> Ticket:
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    return result.scalars().first()
 
-def get_tickets(db: Session, skip: int = 0, limit: int = 100) -> list[Ticket]:
-    return db.query(Ticket).offset(skip).limit(limit).all()
+async def get_tickets(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[Ticket]:
+    result = await db.execute(select(Ticket).offset(skip).limit(limit))
+    return result.scalars().all()
 
-def update_ticket(db: Session, ticket_id: int, ticket: TicketUpdateSchema) -> Ticket:
-    db_ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+async def update_ticket(db: AsyncSession, ticket_id: int, ticket: TicketUpdateSchema) -> Ticket:
+
+    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
+    db_ticket = result.scalars().first()
+    
     if db_ticket:
         db_ticket.title = ticket.title
         db_ticket.message = ticket.message
@@ -33,6 +38,7 @@ def update_ticket(db: Session, ticket_id: int, ticket: TicketUpdateSchema) -> Ti
         db_ticket.status = ticket.status
         db_ticket.Categoryid = ticket.category_id
         db_ticket.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(db_ticket)
+        
+        await db.commit()
+        await db.refresh(db_ticket)
     return db_ticket
