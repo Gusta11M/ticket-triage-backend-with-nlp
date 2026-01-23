@@ -29,9 +29,9 @@ def update_ticket(db: Session, ticket_id: int, ticket: TicketUpdateSchema) -> Ti
     if db_ticket:
         db_ticket.title = ticket.title
         db_ticket.message = ticket.message
-        db_ticket.priority = ticket.priority
+        db_ticket.Priorityid = ticket.priority_id
         db_ticket.status = ticket.status
-        db_ticket.category = ticket.category
+        db_ticket.Categoryid = ticket.category_id
         db_ticket.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(db_ticket)
