@@ -1,13 +1,17 @@
 import datetime
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
+class CategoryBase(BaseModel):
+    category_name: str = Field(..., title="Category Name", max_length=100, min_length=2)
 
-class CategoryCreateSchema:
-    category_name: str = Field(..., example="Software Issue", max_length=100, min_length=3)
+class CategoryCreateSchema(CategoryBase):
+    pass
 
-class CategoryUpdateSchema:
+class CategoryUpdateSchema(CategoryBase):
+    pass
+
+class CategorySchema(CategoryBase):
     id: int
-    category_name: str | None = None
+    created_at: datetime.datetime
 
-class Config:
-        from_attributes = True
+model_config = ConfigDict(from_attributes=True)

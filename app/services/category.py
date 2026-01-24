@@ -23,8 +23,8 @@ async def get_categories_service(db: AsyncSession) -> list[Category]:
     categories = await get_all_categories(db)
     return categories
 
-async def update_category_service(db: AsyncSession, category_data : CategoryUpdateSchema) -> Category | None:
-    category_obj = await update_category(db, category_data)
+async def update_category_service(db: AsyncSession, category_id: int, category_data : CategoryUpdateSchema) -> Category | None:
+    category_obj = await update_category(db, category_id, category_data)
     return category_obj
 
 async def delete_category_service(db: AsyncSession, category_id: int) -> bool:

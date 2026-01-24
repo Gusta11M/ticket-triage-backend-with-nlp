@@ -6,7 +6,8 @@ from app.models import category, priority, user, ticket
 app = FastAPI()
 
 @app.on_event("startup")
-def starup():
-    Base.metadata.create_all(bind=engine)
+async def starup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 app.include_router(api_router)

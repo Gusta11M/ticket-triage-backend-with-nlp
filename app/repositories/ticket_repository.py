@@ -30,15 +30,20 @@ async def update_ticket(db: AsyncSession, ticket_id: int, ticket: TicketUpdateSc
 
     result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
     db_ticket = result.scalars().first()
+
+    if db_ticket is None:
+        return None
     
-    if db_ticket:
-        db_ticket.title = ticket.title
-        db_ticket.message = ticket.message
-        db_ticket.Priorityid = ticket.priority_id
-        db_ticket.status = ticket.status
-        db_ticket.Categoryid = ticket.category_id
-        db_ticket.updated_at = datetime.utcnow()
+    update_data = ticket.model_dump(exclude_unset=True)
+
+    # 3. Atualiza apenas os atributos presentes no dicionário
+    for key, value in update_data.items():
+        setattr(db_ticket, key, value)
+
+    # 4. Atualiza sempre o timestamp de modificação
+    db_ticket.updated_at = datetime.utcnow()
         
-        await db.commit()
-        await db.refresh(db_ticket)
+    await db.commit()
+    await db.refresh(db_ticket)
+
     return db_ticket

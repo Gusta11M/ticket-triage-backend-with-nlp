@@ -1,4 +1,5 @@
-from select import select
+from datetime import datetime
+from sqlalchemy import select
 from sqlalchemy import true
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.category import Category
@@ -7,7 +8,8 @@ from app.schemas.category import CategoryCreateSchema, CategoryUpdateSchema
 async def create_category(db : AsyncSession, category : CategoryCreateSchema) -> Category:
 
     db_category = Category(
-        category_name = category.category_name
+        category_name = category.category_name,
+        created_at = datetime.utcnow()
     )
 
     db.add(db_category)
@@ -29,10 +31,10 @@ async def get_all_categories(db : AsyncSession) -> list[Category]:
     return result.scalars().all()
 
 
-async def update_category(db : AsyncSession, category_data : CategoryUpdateSchema) -> Category | None:
+async def update_category(db : AsyncSession, category_id: int, category_data : CategoryUpdateSchema) -> Category | None:
 
     result = await db.execute(
-        select(Category).where(Category.id == category_data.id)
+        select(Category).where(Category.id == category_id)
     )
     db_category = result.scalars().first()
 

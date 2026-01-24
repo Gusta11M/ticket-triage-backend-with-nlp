@@ -15,11 +15,10 @@ load_dotenv()
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 
-# NullPool é vital para não deixar sessões "penduradas" no Postgres
 engine_test = create_async_engine(
     TEST_DATABASE_URL, 
     poolclass=NullPool,
-    isolation_level="AUTOCOMMIT" # Ajuda a evitar transações presas
+    isolation_level="AUTOCOMMIT"
 )
 
 TestingSessionLocal = sessionmaker(
@@ -36,20 +35,24 @@ def event_loop():
 @pytest.fixture(scope="session", autouse=True)
 async def setup_db():
     async with engine_test.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        # Removido o drop_all do início para não apagar a estrutura existente.
+        # create_all apenas cria as tabelas se elas ainda não existirem.
         await conn.run_sync(Base.metadata.create_all)
+    
     yield
-    # No teardown, limpamos tudo e fechamos o motor
-    async with engine_test.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    
+    # Teardown: Removido o drop_all para manter as tabelas vivas.
+    # Apenas fechamos o motor de forma limpa.
     await engine_test.dispose()
 
 @pytest.fixture
 async def client():
     async with TestingSessionLocal() as session:
+        # Limpamos apenas os DADOS antes de cada teste, mantendo as tabelas.
+        # O RESTART IDENTITY garante que os IDs (PKs) voltem a 1.
+        await session.execute(text('TRUNCATE TABLE "Ticket", "User", "Category", "Priority" RESTART IDENTITY CASCADE'))
         
-        await session.execute(text('TRUNCATE TABLE "Ticket" RESTART IDENTITY CASCADE'))
-
+        # Como o engine está em AUTOCOMMIT, o commit() abaixo reforça o flush.
         await session.commit()
 
         app.dependency_overrides[get_db] = lambda: session

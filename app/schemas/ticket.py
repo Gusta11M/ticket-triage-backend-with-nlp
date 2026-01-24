@@ -1,19 +1,30 @@
 
 import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.ticketStatus import TicketStatus
 
-class TicketCreateSchema(BaseModel):
+class TicketBase(BaseModel):
     title: str = Field(..., example="Sample Ticket Title", max_length=255, min_length=5)
     message: str = Field(..., example="This is a sample ticket message.", min_length=10)
 
-class TicketUpdateSchema(BaseModel):
-    title: str | None = None
-    message: str | None = None
-    priority_id: int | None = None
-    status: str | None = None
-    category_id: int | None = None
+class TicketCreateSchema(TicketBase):
+    pass
 
-class Config:
-        from_attributes = True
+class TicketResponseSchema(TicketBase):
+    id: int
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    Priorityid: int | None
+    status: TicketStatus
+    Categoryid: int | None
+    Userid: int | None
+
+class TicketUpdateSchema(BaseModel):
+    title: str | None = Field(None, example="Updated Ticket Title", max_length=255, min_length=5)
+    message: str | None = Field(None, example="This is an updated ticket message.", min_length=10)
+    Priorityid: int | None = Field(None, example=2)
+    status: TicketStatus | None = Field(None, example=TicketStatus.IN_PROGRESS)
+    Categoryid: int | None = Field(None, example=3)
+
+model_config = ConfigDict(from_attributes=True)
