@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.routes import tickets
+from app.api.router import api_router
 from app.db.session import Base, engine
 from app.models import category, priority, user, ticket
 
@@ -9,4 +9,4 @@ app = FastAPI()
 def starup():
     Base.metadata.create_all(bind=engine)
 
-app.include_router(tickets.router, tags=["Tickets"])
+app.include_router(api_router)

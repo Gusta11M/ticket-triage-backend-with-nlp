@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.dependencies import get_db
-from app.schemas.ticket import TicketCreateSchema, TicketReadSchema, TicketUpdateSchema
+from app.models.ticket import Ticket
+from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema
 from app.services.ticket import (
     create_ticket_service, 
     get_ticket_service, 
@@ -9,15 +10,15 @@ from app.services.ticket import (
     update_ticket_service
 )
 
-router = APIRouter(prefix="/tickets")
+router = APIRouter(prefix="/tickets" , tags=["Tickets"])
 
-@router.post("/", response_model=TicketReadSchema, status_code=201)
+@router.post("/", response_model=Ticket, status_code=201)
 async def create_ticket(
     ticket: TicketCreateSchema, db: AsyncSession = Depends(get_db)
 ):
     return await create_ticket_service(db, ticket)
 
-@router.get("/{ticket_id}", response_model=TicketReadSchema)
+@router.get("/{ticket_id}", response_model=Ticket)
 async def read_ticket(
     ticket_id: int, db: AsyncSession = Depends(get_db)
 ):
@@ -26,13 +27,13 @@ async def read_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
     return ticket
 
-@router.get("/", response_model=list[TicketReadSchema])
+@router.get("/", response_model=list[Ticket])
 async def read_tickets(
     skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)
 ):
     return await get_tickets_service(db, skip, limit)
 
-@router.put("/{ticket_id}", response_model=TicketReadSchema)
+@router.put("/{ticket_id}", response_model=Ticket)
 async def update_ticket(
     ticket_id: int,
     ticket: TicketUpdateSchema,
