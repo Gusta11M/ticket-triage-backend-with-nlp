@@ -1,6 +1,6 @@
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-class PriorityBase:
+class PriorityBase(BaseModel):
     priority_name: str = Field(..., example="High", min_length=1, max_length=50)
     level: int = Field(..., example=3, ge=1, le=5)
 

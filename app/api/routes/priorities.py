@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.db.dependencies import get_db
 from app.schemas.priority import PriorityCreateSchema, PriorityUpdateSchema
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +14,10 @@ async def create_priority(priority : PriorityCreateSchema, db: AsyncSession = De
 
 @router.get("/{priority_id}")
 async def get_priority(priority_id: int, db: AsyncSession = Depends(get_db)):
-    return await get_priority_service(db, priority_id)
+    result = await get_priority_service(db, priority_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Priority not found")
+    return result
 
 @router.get("/")
 async def get_priorities(db: AsyncSession = Depends(get_db)):
@@ -24,7 +27,7 @@ async def get_priorities(db: AsyncSession = Depends(get_db)):
 async def update_priority(priority_id: int, priority: PriorityUpdateSchema, db: AsyncSession = Depends(get_db)):
     return await update_priority_service(db, priority_id, priority)
 
-@router.delete("/{priority_id}")
+@router.delete("/{priority_id}", status_code=204)
 async def delete_priority(priority_id: int, db: AsyncSession = Depends(get_db)):
     return await delete_priority_service(db, priority_id)
 

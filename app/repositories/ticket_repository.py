@@ -28,8 +28,7 @@ async def get_tickets(db: AsyncSession, skip: int = 0, limit: int = 100) -> list
 
 async def update_ticket(db: AsyncSession, ticket_id: int, ticket: TicketUpdateSchema) -> Ticket:
 
-    result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
-    db_ticket = result.scalars().first()
+    db_ticket = await get_ticket(db, ticket_id)
 
     if db_ticket is None:
         return None
