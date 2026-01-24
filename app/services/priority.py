@@ -3,7 +3,7 @@ from app.schemas.priority import PriorityCreateSchema
 from app.repositories.priority_repository import create_priority, delete_priority, get_priority_by_id, get_all_priorities, update_priority
 from sqlalchemy.ext.asyncio import AsyncSession
 
-async def create_priority(db:AsyncSession, priority:PriorityCreateSchema) -> Priority:
+async def create_priority_service(db:AsyncSession, priority:PriorityCreateSchema) -> Priority:
     priority_obj = await create_priority(db, priority)
     return priority_obj
 
