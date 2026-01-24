@@ -1,7 +1,7 @@
 
 from datetime import datetime
 from sqlalchemy import Column, DateTime, Integer, String
-from app.db.session import Base
+from app.db.base import Base
 
 class Category (Base):
     

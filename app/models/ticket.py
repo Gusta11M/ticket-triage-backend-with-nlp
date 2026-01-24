@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
-from app.db.session import Base
+from app.db.base import Base
 from sqlalchemy.orm import relationship
 from app.models.ticketStatus import TicketStatus
 
