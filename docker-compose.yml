@@ -1,16 +1,36 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:16
     container_name: ticket_triage_postgres
-    restart: unless-stopped
+    restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ticket_triage_db
+    - PYTHONPATH=/app
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres_test:
+    image: postgres:16
+    container_name: ticket_triage_postgres_test
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ticket_triage_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -23,17 +43,26 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ticket_triage_api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "
+      alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+    - PYTHONPATH=/app
     depends_on:
       postgres:
+        condition: service_healthy
+      postgres_test:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
+  postgres_test_data:

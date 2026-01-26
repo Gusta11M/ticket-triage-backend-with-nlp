@@ -1,7 +1,5 @@
 from fastapi import FastAPI
 from app.api.router import api_router
-from app.db.session import Base, engine
-from app.models import category, priority, user, ticket
 
 app = FastAPI(
     title="Ticket Triage NLP API",

@@ -11,7 +11,7 @@ async def test_create_priority(client : AsyncClient):
     }
 
     response = await client.post("/priorities/", json=priority_data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     response_data = response.json()
     assert response_data["priority_name"] == priority_data["priority_name"]
     assert response_data["level"] == priority_data["level"]
