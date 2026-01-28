@@ -6,11 +6,7 @@ from typing import Dict, Any
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-
 def hash_password(password: str) -> str:
-    print(f"DEBUG: A password recebida é: {password}")
-    print(f"DEBUG: O tipo é: {type(password)}")
-    print(f"DEBUG: O tamanho é: {len(str(password))}")
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -41,10 +37,6 @@ def create_refresh_token( subject: dict, expires_delta: timedelta | None = None)
     payload = {"sub":  subject, "exp": expire}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def decode_token(token: str) -> dict:
-    try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise Exception("Token expirado")
-    except jwt.JWTError:
-        raise Exception("Token inválido")
+def create_tokens(subject: dict, expires_delta: timedelta | None = None,additional_payload: Dict[str, Any] | None = None):
+
+    return create_access_token(subject, expires_delta, additional_payload), create_refresh_token(subject, expires_delta)

@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
+from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password, create_tokens
 from app.repositories.user_repository import create_user, get_user_by_email
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt
@@ -24,7 +24,7 @@ async def register(db:AsyncSession, data : RegisterRequest):
     new_user = await create_user(db, data)
 
     access_token = create_access_token(subject=str(new_user.id), additional_payload={"role": new_user.role})
-    refresh_token = create_refresh_token(subject={"sub": str(new_user.id)})
+    refresh_token = create_refresh_token(subject=str(new_user.id))
 
     return access_token, refresh_token
 
@@ -39,27 +39,34 @@ async def authenticate_user(db : AsyncSession, data: LoginRequest):
         )
     
     access_token = create_access_token(subject=str(user.id), additional_payload={"role": user.role})
-    refresh_token = create_refresh_token(subject={"sub": str(user.id)})
+    refresh_token = create_refresh_token(subject=str(user.id))
 
     return access_token, refresh_token
 
-def refresh_tokens(refresh_token: RefreshTokenRequest):
+def refresh_tokens(data: RefreshTokenRequest):
+
+    token_str = data.refresh_token 
 
     try:
-        payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token_str, 
+            settings.SECRET_KEY, 
+            algorithms=[settings.ALGORITHM]
+        )
+
         user_id: str = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token de atualização inválido"
-            )
+        
+        if isinstance(user_id, dict):
+            user_id = user_id.get("sub")
+
+        if not user_id:
+            print(f"DEBUG REFRESH: Payload sem sub válido: {payload}")
+            raise HTTPException(status_code=401, detail="Token inválido")
+        
+        return create_tokens(str(user_id))
+    
     except jwt.JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token de atualização inválido"
+            detail="Token inválido"
         )
-    
-    result_access_token = create_access_token(subject=user_id)
-    result_refresh_token = create_refresh_token(subject={"sub": user_id})
-
-    return result_access_token, result_refresh_token
