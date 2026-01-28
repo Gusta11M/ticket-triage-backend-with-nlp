@@ -5,13 +5,14 @@ from app.models.ticket import Ticket
 from app.models.ticketStatus import TicketStatus
 from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema
 
-async def create_ticket(db: AsyncSession, ticket: TicketCreateSchema) -> Ticket:
+async def create_ticket(db: AsyncSession, ticket: TicketCreateSchema, user_id: int) -> Ticket:
     db_ticket = Ticket(
         title=ticket.title,
         message=ticket.message,
         status=TicketStatus.OPEN.value,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
+        Userid = user_id
     )
     db.add(db_ticket)
     await db.commit()

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.core.dependencies import get_current_user
+from app.core.dependencies import role_required
 from app.db.dependencies import get_db
 from app.models.user import User
 from app.schemas.priority import PriorityCreateSchema, PriorityUpdateSchema
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/priorities", tags=["Priorities"])
     summary="Registar nível de prioridade",
     description="Define um novo nível de prioridade (ex: Crítico, Urgente)."
 )
-async def create_priority(priority: PriorityCreateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def create_priority(priority: PriorityCreateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(role_required("admin"))):
     return await create_priority_service(db, priority)
 
 @router.get(
@@ -35,11 +35,11 @@ async def get_priorities(db: AsyncSession = Depends(get_db)):
     return await get_priorities_service(db)
 
 @router.put("/{priority_id}", summary="Modificar prioridade")
-async def update_priority(priority_id: int, priority: PriorityUpdateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def update_priority(priority_id: int, priority: PriorityUpdateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(role_required("admin"))):
     return await update_priority_service(db, priority_id, priority)
 
 @router.delete("/{priority_id}", status_code=204, summary="Apagar prioridade")
-async def delete_priority(priority_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def delete_priority(priority_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(role_required("admin"))):
     return await delete_priority_service(db, priority_id)
 
 

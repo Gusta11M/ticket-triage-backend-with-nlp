@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, role_required
 from app.db.dependencies import get_db
 from app.models.category import Category
 from app.models.user import User
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
     summary="Criar nova categoria",
     description="Regista uma nova categoria temática para classificação de tickets."
 )
-async def create_category(category: CategoryCreateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def create_category(category: CategoryCreateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(role_required("admin"))):
     """Cria uma categoria no banco de dados e retorna o objeto criado."""
     return await create_category_service(db, category)
 
@@ -50,7 +50,7 @@ async def list_all_categories(db: AsyncSession = Depends(get_db)):
     responses={404: {"description": "Categoria não encontrada"}}
 )
 async def update_category(
-    category_id: int, category_data: CategoryUpdateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    category_id: int, category_data: CategoryUpdateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(role_required("admin"))
 ):
     """Atualiza os campos de uma categoria existente (ex: nome)."""
     return await update_category_service(db, category_id, category_data)
@@ -60,7 +60,7 @@ async def update_category(
     status_code=204,
     summary="Remover categoria"
 )
-async def delete_category(category_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def delete_category(category_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(role_required("admin"))):
     """Remove permanentemente uma categoria do sistema."""
     await delete_category_service(db, category_id)
 

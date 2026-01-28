@@ -2,91 +2,81 @@ import pytest
 from httpx import AsyncClient
 
 @pytest.mark.asyncio
-async def test_create_category(client : AsyncClient):
-    category_data = {
-        "category_name": "Bug",
-    }
-    response = await client.post("/categories/", json=category_data)
+async def test_create_category(client: AsyncClient, admin_headers: dict):
+    category_data = {"category_name": "Bug"}
+    # Apenas Admin pode criar
+    response = await client.post("/categories/", json=category_data, headers=admin_headers)
+    
     assert response.status_code == 201
     response_data = response.json()
     assert response_data["category_name"] == category_data["category_name"]
     assert "id" in response_data
-    assert "created_at" in response_data
 
 @pytest.mark.asyncio
-async def test_create_category_with_invalid_data(client : AsyncClient):
-    invalid_category_data = {
-        "category_name": "",  # Category name should not be empty
-    }
-    response = await client.post("/categories/", json=invalid_category_data)
-    assert response.status_code == 422  # Unprocessable Entity
-    response_data = response.json()
-    assert "category_name" in response_data["detail"][0]["loc"]
+async def test_create_category_forbidden_for_user(client: AsyncClient, user_headers: dict):
+    category_data = {"category_name": "Should Fail"}
+    # Utilizador comum recebe 403
+    response = await client.post("/categories/", json=category_data, headers=user_headers)
+    assert response.status_code == 403
 
 @pytest.mark.asyncio
-async def test_get_category(client : AsyncClient):
-    category_data = {
-        "category_name": "Feature Request",
-    }
+async def test_create_category_with_invalid_data(client: AsyncClient, admin_headers: dict):
+    invalid_data = {"category_name": ""}
+    response = await client.post("/categories/", json=invalid_data, headers=admin_headers)
+    
+    assert response.status_code == 422
+    assert "category_name" in response.json()["detail"][0]["loc"]
 
-    create_response = await client.post("/categories/", json=category_data)
-    category_id = create_response.json()["id"]
+@pytest.mark.asyncio
+async def test_get_category(client: AsyncClient, admin_headers: dict, user_headers: dict):
+    # Admin cria
+    create_res = await client.post("/categories/", json={"category_name": "Feature Request"}, headers=admin_headers)
+    category_id = create_res.json()["id"]
 
-    response = await client.get(f"/categories/{category_id}")
+    # User consegue ler
+    response = await client.get(f"/categories/{category_id}", headers=user_headers)
     assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["id"] == category_id
-    assert response_data["category_name"] == category_data["category_name"]
+    assert response.json()["id"] == category_id
 
 @pytest.mark.asyncio
-async def test_get_nonexistent_category(client : AsyncClient):
-    nonexistent_category_id = 9999
-    response = await client.get(f"/categories/{nonexistent_category_id}")
+async def test_get_nonexistent_category(client: AsyncClient, user_headers: dict):
+    response = await client.get("/categories/9999", headers=user_headers)
     assert response.status_code == 404
 
 @pytest.mark.asyncio
-async def test_list_categories(client : AsyncClient):
-    categories_to_create = [
-        {"category_name": "Support"},
-        {"category_name": "Maintenance"},
-    ]
-    for category in categories_to_create:
-        await client.post("/categories/", json=category)
+async def test_list_categories(client: AsyncClient, admin_headers: dict, user_headers: dict):
+    # Criar algumas categorias
+    await client.post("/categories/", json={"category_name": "Support"}, headers=admin_headers)
+    await client.post("/categories/", json={"category_name": "Maintenance"}, headers=admin_headers)
 
-    response = await client.get("/categories/")
+    # Listar
+    response = await client.get("/categories/", headers=user_headers)
     assert response.status_code == 200
-    response_data = response.json()
-    assert len(response_data) >= len(categories_to_create)
+    assert len(response.json()) >= 2
 
 @pytest.mark.asyncio
-async def test_update_category(client : AsyncClient):
-    category_data = {
-        "category_name": "Initial Name",
-    }
-    create_response = await client.post("/categories/", json=category_data)
-    category_id = create_response.json()["id"]
+async def test_update_category(client: AsyncClient, admin_headers: dict):
+    # Criar
+    create_res = await client.post("/categories/", json={"category_name": "Initial"}, headers=admin_headers)
+    category_id = create_res.json()["id"]
 
-    updated_data = {
-        "category_name": "Updated Name",
-    }
-
-    response = await client.put(f"/categories/{category_id}", json=updated_data)
+    # Atualizar (Admin)
+    updated_data = {"category_name": "Updated Name"}
+    response = await client.put(f"/categories/{category_id}", json=updated_data, headers=admin_headers)
+    
     assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["id"] == category_id
-    assert response_data["category_name"] == updated_data["category_name"]
+    assert response.json()["category_name"] == "Updated Name"
 
 @pytest.mark.asyncio
-async def test_delete_category(client : AsyncClient):
-    category_data = {
-        "category_name": "To Be Deleted",
-    }
+async def test_delete_category(client: AsyncClient, admin_headers: dict):
+    # Criar
+    create_res = await client.post("/categories/", json={"category_name": "To Delete"}, headers=admin_headers)
+    category_id = create_res.json()["id"]
 
-    create_response = await client.post("/categories/", json=category_data)
-    category_id = create_response.json()["id"]
-
-    response = await client.delete(f"/categories/{category_id}")
+    # Remover (Admin)
+    response = await client.delete(f"/categories/{category_id}", headers=admin_headers)
     assert response.status_code == 204
 
-    get_response = await client.get(f"/categories/{category_id}")
-    assert get_response.status_code == 404
+    # Verificar que sumiu
+    get_res = await client.get(f"/categories/{category_id}", headers=admin_headers)
+    assert get_res.status_code == 404

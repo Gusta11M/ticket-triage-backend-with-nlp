@@ -37,3 +37,13 @@ async def get_current_user(
 
     except JWTError:
         raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
+    
+def role_required(required_role: str):
+    async def decorator(current_user: User = Depends(get_current_user)):
+        if current_user.role != required_role and current_user.role != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Operação não permitida para o seu nível de acesso"
+            )
+        return current_user
+    return decorator

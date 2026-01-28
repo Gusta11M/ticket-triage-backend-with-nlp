@@ -23,58 +23,73 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+# ========== SOLUÇÃO: Engine global sem conexões persistentes ==========
 engine_test = create_async_engine(
     TEST_DATABASE_URL, 
     poolclass=NullPool,
-    isolation_level="AUTOCOMMIT",
     echo=False
 )
 
-TestingSessionLocal = sessionmaker(
-    engine_test, 
-    class_=AsyncSession, 
-    expire_on_commit=False
-)
+# ========== MUDANÇA 1: Remover o fixture de event_loop customizado ==========
+# Deixar o pytest-asyncio gerenciar o event loop automaticamente
 
-# Event loop com escopo de função (mais seguro para pytest-asyncio)
-@pytest.fixture(scope="function")
-def event_loop():
-    """Cria um novo loop para cada teste."""
+# ========== MUDANÇA 2: Setup do BD síncrono executado uma vez ==========
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
+    """Setup e teardown do schema do banco - executado de forma síncrona."""
+    import asyncio
+    
+    async def create_tables():
+        async with engine_test.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+    
+    async def drop_tables():
+        async with engine_test.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+        await engine_test.dispose()
+    
+    # Cria um novo loop temporário para setup
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    yield loop
+    loop.run_until_complete(create_tables())
+    loop.close()
     
-    # Cancela todas as tarefas pendentes
-    pending = asyncio.all_tasks(loop)
-    for task in pending:
-        task.cancel()
+    yield
     
-    # Aguarda o cancelamento
-    if pending:
-        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-    
+    # Cria um novo loop temporário para teardown
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(drop_tables())
     loop.close()
 
-@pytest.fixture(scope="session", autouse=True)
-async def setup_db():
-    """Configuração única do banco de dados para toda a sessão."""
-    async with engine_test.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine_test.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine_test.dispose()
-
+# ========== MUDANÇA 3: Sessão de BD recriada para cada teste ==========
 @pytest.fixture
 async def db_session():
     """Fornece uma sessão de banco de dados isolada para cada teste."""
-    async with TestingSessionLocal() as session:
+    # Cria uma nova sessão para cada teste
+    async_session = sessionmaker(
+        engine_test, 
+        class_=AsyncSession, 
+        expire_on_commit=False
+    )
+    
+    async with async_session() as session:
         # Limpeza antes do teste
-        await session.execute(text('TRUNCATE TABLE "Ticket", "Category", "Priority", "User" RESTART IDENTITY CASCADE'))
-        await session.commit()
+        try:
+            await session.execute(text('TRUNCATE TABLE "Ticket", "Category", "Priority", "User" RESTART IDENTITY CASCADE'))
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            print(f"Erro ao limpar tabelas: {e}")
+        
         yield session
-        await session.rollback()
+        
+        # Rollback ao final
+        try:
+            await session.rollback()
+        except Exception:
+            pass
 
 @pytest.fixture
 async def client(db_session):
@@ -85,10 +100,57 @@ async def client(db_session):
     
     app.dependency_overrides[get_db] = override_get_db
     
-    async with AsyncClient(
-        transport=ASGITransport(app=app), 
-        base_url="http://test"
-    ) as ac:
-        yield ac
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), 
+            base_url="http://test"
+        ) as ac:
+            yield ac
+    finally:
+        app.dependency_overrides.clear()
+
+async def get_token_for_user(client: AsyncClient, email: str, role: str):
+    """Função auxiliar para registar e logar utilizadores nos testes."""
+    password = "Password123"
     
-    app.dependency_overrides.clear()
+    # 1. Tentar registar
+    reg_response = await client.post("/auth/register", json={
+        "email": email,
+        "password": password,
+        "role": role
+    })
+    
+    # 2. Login como Form Data (OAuth2 padrão)
+    login_data = {"username": email, "password": password}
+    response = await client.post("/auth/login", data=login_data)
+
+    # 3. Se falhar, tenta como JSON
+    if response.status_code != 200:
+        response = await client.post("/auth/login", json={
+            "email": email, 
+            "password": password
+        })
+
+    if response.status_code != 200:
+        print(f"\n❌ FALHA NO LOGIN ({email}): {response.status_code}")
+        print(f"Response: {response.text}")
+        return None
+
+    token_data = response.json()
+    return token_data.get("access_token")
+
+@pytest.fixture
+async def admin_headers(client: AsyncClient):
+    """Headers com token de administrador."""
+    token = await get_token_for_user(client, "admin@test.com", "admin")
+    if not token:
+        pytest.fail("❌ Não foi possível obter token de Admin")
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest.fixture
+async def user_headers(client: AsyncClient):
+    """Headers com token de utilizador normal."""
+    token = await get_token_for_user(client, "user@test.com", "user")
+    if not token:
+        pytest.fail("❌ Não foi possível obter token de User")
+    return {"Authorization": f"Bearer {token}"}

@@ -1,9 +1,9 @@
 from app.repositories.ticket_repository import create_ticket, get_ticket, get_tickets, update_ticket
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema #
+from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema
 
-async def create_ticket_service(db: AsyncSession, ticket_data: TicketCreateSchema):
-    ticket = await create_ticket(db, ticket_data)
+async def create_ticket_service(db: AsyncSession, ticket_data: TicketCreateSchema, user_id: int):
+    ticket = await create_ticket(db, ticket_data, user_id)
     return ticket
 
 async def get_ticket_service(db: AsyncSession, ticket_id: int):
