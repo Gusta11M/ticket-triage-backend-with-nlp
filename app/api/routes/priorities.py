@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.core.dependencies import get_current_user
 from app.db.dependencies import get_db
+from app.models.user import User
 from app.schemas.priority import PriorityCreateSchema, PriorityUpdateSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +16,7 @@ router = APIRouter(prefix="/priorities", tags=["Priorities"])
     summary="Registar nível de prioridade",
     description="Define um novo nível de prioridade (ex: Crítico, Urgente)."
 )
-async def create_priority(priority: PriorityCreateSchema, db: AsyncSession = Depends(get_db)):
+async def create_priority(priority: PriorityCreateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     return await create_priority_service(db, priority)
 
 @router.get(
@@ -33,11 +35,11 @@ async def get_priorities(db: AsyncSession = Depends(get_db)):
     return await get_priorities_service(db)
 
 @router.put("/{priority_id}", summary="Modificar prioridade")
-async def update_priority(priority_id: int, priority: PriorityUpdateSchema, db: AsyncSession = Depends(get_db)):
+async def update_priority(priority_id: int, priority: PriorityUpdateSchema, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     return await update_priority_service(db, priority_id, priority)
 
 @router.delete("/{priority_id}", status_code=204, summary="Apagar prioridade")
-async def delete_priority(priority_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_priority(priority_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     return await delete_priority_service(db, priority_id)
 
 
