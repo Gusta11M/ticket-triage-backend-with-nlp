@@ -9,4 +9,5 @@ class Category (Base):
 
     id = Column(Integer, primary_key=True, index=True)
     category_name = Column(String, unique=True, index=True)
+    description = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
