@@ -9,6 +9,7 @@ async def create_category(db : AsyncSession, category : CategoryCreateSchema) ->
 
     db_category = Category(
         category_name = category.category_name,
+        description = category.description,
         created_at = datetime.utcnow()
     )
 
@@ -40,6 +41,7 @@ async def update_category(db : AsyncSession, category_id: int, category_data : C
 
     if db_category:
         db_category.category_name =  category_data.category_name
+        db_category.description = category_data.description
 
         await db.commit()
         await db.refresh(db_category)

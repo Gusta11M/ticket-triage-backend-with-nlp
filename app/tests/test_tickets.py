@@ -123,7 +123,7 @@ async def test_get_classification_ticket_returns_category_and_priority(
     # Criar categoria e prioridade (apenas admin)
     category_res = await client.post(
         "/categories/",
-        json={"category_name": "Bug"},
+        json={"category_name": "Bug", "description": "Erros e crashes"},
         headers=admin_headers,
     )
     assert category_res.status_code == 201
@@ -166,7 +166,7 @@ async def test_get_classification_ticket_returns_category_and_priority(
     data = response.json()
     assert data["id"] == ticket_id
     assert data["category"] == "Bug"
-    assert data["priority"] == priority_id
+    assert data["priority"] == "High"
 
 
 @pytest.mark.asyncio

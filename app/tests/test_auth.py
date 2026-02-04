@@ -71,11 +71,11 @@ async def test_login_success(client: AsyncClient):
     await client.post("/auth/register", json=register_payload)
 
     login_payload = {
-        "email": "login@test.com",
+        "username": "login@test.com",
         "password": "LoginPassword123"
     }
 
-    response = await client.post("/auth/login", json=login_payload)
+    response = await client.post("/auth/login", data=login_payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -96,11 +96,11 @@ async def test_login_wrong_password(client: AsyncClient):
     await client.post("/auth/register", json=register_payload)
 
     login_payload = {
-        "email": "wrongpass@test.com",
+        "username": "wrongpass@test.com",
         "password": "WrongPassword"
     }
 
-    response = await client.post("/auth/login", json=login_payload)
+    response = await client.post("/auth/login", data=login_payload)
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Credenciais inválidas"
@@ -109,11 +109,11 @@ async def test_login_wrong_password(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_login_nonexistent_user(client: AsyncClient):
     payload = {
-        "email": "doesnotexist@test.com",
+        "username": "doesnotexist@test.com",
         "password": "password"
     }
 
-    response = await client.post("/auth/login", json=payload)
+    response = await client.post("/auth/login", data=payload)
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Credenciais inválidas"

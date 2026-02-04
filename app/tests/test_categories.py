@@ -3,7 +3,7 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_create_category(client: AsyncClient, admin_headers: dict):
-    category_data = {"category_name": "Bug"}
+    category_data = {"category_name": "Bug", "description": "Erros e crashes"}
     # Apenas Admin pode criar
     response = await client.post("/categories/", json=category_data, headers=admin_headers)
     
@@ -14,14 +14,14 @@ async def test_create_category(client: AsyncClient, admin_headers: dict):
 
 @pytest.mark.asyncio
 async def test_create_category_forbidden_for_user(client: AsyncClient, user_headers: dict):
-    category_data = {"category_name": "Should Fail"}
+    category_data = {"category_name": "Should Fail", "description": "Nao deve criar"}
     # Utilizador comum recebe 403
     response = await client.post("/categories/", json=category_data, headers=user_headers)
     assert response.status_code == 403
 
 @pytest.mark.asyncio
 async def test_create_category_with_invalid_data(client: AsyncClient, admin_headers: dict):
-    invalid_data = {"category_name": ""}
+    invalid_data = {"category_name": "", "description": "Descricao valida"}
     response = await client.post("/categories/", json=invalid_data, headers=admin_headers)
     
     assert response.status_code == 422
@@ -30,7 +30,11 @@ async def test_create_category_with_invalid_data(client: AsyncClient, admin_head
 @pytest.mark.asyncio
 async def test_get_category(client: AsyncClient, admin_headers: dict, user_headers: dict):
     # Admin cria
-    create_res = await client.post("/categories/", json={"category_name": "Feature Request"}, headers=admin_headers)
+    create_res = await client.post(
+        "/categories/",
+        json={"category_name": "Feature Request", "description": "Sugestoes e melhorias"},
+        headers=admin_headers,
+    )
     category_id = create_res.json()["id"]
 
     # User consegue ler
@@ -46,8 +50,16 @@ async def test_get_nonexistent_category(client: AsyncClient, user_headers: dict)
 @pytest.mark.asyncio
 async def test_list_categories(client: AsyncClient, admin_headers: dict, user_headers: dict):
     # Criar algumas categorias
-    await client.post("/categories/", json={"category_name": "Support"}, headers=admin_headers)
-    await client.post("/categories/", json={"category_name": "Maintenance"}, headers=admin_headers)
+    await client.post(
+        "/categories/",
+        json={"category_name": "Support", "description": "Ajuda e suporte"},
+        headers=admin_headers,
+    )
+    await client.post(
+        "/categories/",
+        json={"category_name": "Maintenance", "description": "Manutencao e ajustes"},
+        headers=admin_headers,
+    )
 
     # Listar
     response = await client.get("/categories/", headers=user_headers)
@@ -57,11 +69,15 @@ async def test_list_categories(client: AsyncClient, admin_headers: dict, user_he
 @pytest.mark.asyncio
 async def test_update_category(client: AsyncClient, admin_headers: dict):
     # Criar
-    create_res = await client.post("/categories/", json={"category_name": "Initial"}, headers=admin_headers)
+    create_res = await client.post(
+        "/categories/",
+        json={"category_name": "Initial", "description": "Descricao inicial"},
+        headers=admin_headers,
+    )
     category_id = create_res.json()["id"]
 
     # Atualizar (Admin)
-    updated_data = {"category_name": "Updated Name"}
+    updated_data = {"category_name": "Updated Name", "description": "Descricao atualizada"}
     response = await client.put(f"/categories/{category_id}", json=updated_data, headers=admin_headers)
     
     assert response.status_code == 200
@@ -70,7 +86,11 @@ async def test_update_category(client: AsyncClient, admin_headers: dict):
 @pytest.mark.asyncio
 async def test_delete_category(client: AsyncClient, admin_headers: dict):
     # Criar
-    create_res = await client.post("/categories/", json={"category_name": "To Delete"}, headers=admin_headers)
+    create_res = await client.post(
+        "/categories/",
+        json={"category_name": "To Delete", "description": "Para apagar"},
+        headers=admin_headers,
+    )
     category_id = create_res.json()["id"]
 
     # Remover (Admin)
