@@ -3,7 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.ticket import Ticket
 from app.models.ticketStatus import TicketStatus
-from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema
+from app.schemas.ticket import TicketCreateSchema, TicketUpdateSchema, TicketResponseClassificationSchema
+from app.repositories.category_repository import get_category_by_id
+from app.repositories.priority_repository import get_priority_by_id
 
 async def create_ticket(db: AsyncSession, ticket: TicketCreateSchema, user_id: int) -> Ticket:
     db_ticket = Ticket(
@@ -26,6 +28,24 @@ async def get_ticket(db: AsyncSession, ticket_id: int) -> Ticket:
 async def get_tickets(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[Ticket]:
     result = await db.execute(select(Ticket).offset(skip).limit(limit))
     return result.scalars().all()
+
+async def get_classification_ticket(db: AsyncSession, ticket_id: int) -> TicketResponseClassificationSchema:
+
+    ticket = await get_ticket(db, ticket_id)
+
+    if ticket is None:
+        return None
+    
+    db_category = await get_category_by_id(db, ticket.Categoryid)
+    db_priority = await get_priority_by_id(db, ticket.Priorityid)
+
+    classfication_ticket = TicketResponseClassificationSchema(
+        id=ticket.id,
+        category= db_category.category_name,
+        priority=db_priority.id
+    )
+
+    return classfication_ticket
 
 async def update_ticket(db: AsyncSession, ticket_id: int, ticket: TicketUpdateSchema) -> Ticket:
 

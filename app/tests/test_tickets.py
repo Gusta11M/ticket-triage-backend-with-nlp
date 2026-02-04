@@ -115,3 +115,61 @@ async def test_update_ticket_forbidden_for_user(client: AsyncClient, user_header
     
     response = await client.put(f"/tickets/{ticket_id}", json={"title": "Hacked Title"}, headers=user_headers)
     assert response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_get_classification_ticket_returns_category_and_priority(
+    client: AsyncClient, admin_headers: dict, user_headers: dict
+):
+    # Criar categoria e prioridade (apenas admin)
+    category_res = await client.post(
+        "/categories/",
+        json={"category_name": "Bug"},
+        headers=admin_headers,
+    )
+    assert category_res.status_code == 201
+    category_id = category_res.json()["id"]
+
+    priority_res = await client.post(
+        "/priorities/",
+        json={"priority_name": "High", "level": 3},
+        headers=admin_headers,
+    )
+    assert priority_res.status_code == 201
+    priority_id = priority_res.json()["id"]
+
+    # Criar ticket como user normal
+    ticket_res = await client.post(
+        "/tickets/",
+        json={
+            "title": "Ticket com classificacao",
+            "message": "Mensagem suficientemente longa para validacao.",
+        },
+        headers=user_headers,
+    )
+    assert ticket_res.status_code == 201
+    ticket_id = ticket_res.json()["id"]
+
+    # Atualizar ticket com categoria e prioridade (admin)
+    update_res = await client.put(
+        f"/tickets/{ticket_id}",
+        json={"Categoryid": category_id, "Priorityid": priority_id},
+        headers=admin_headers,
+    )
+    assert update_res.status_code == 200
+
+    # Buscar classificacao (user)
+    response = await client.get(
+        f"/tickets/classification/{ticket_id}",
+        headers=user_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == ticket_id
+    assert data["category"] == "Bug"
+    assert data["priority"] == priority_id
+
+
+@pytest.mark.asyncio
+async def test_get_classification_ticket_requires_auth(client: AsyncClient):
+    response = await client.get("/tickets/classification/1")
+    assert response.status_code == 401

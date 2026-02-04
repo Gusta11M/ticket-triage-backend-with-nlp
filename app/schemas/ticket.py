@@ -22,6 +22,11 @@ class TicketResponseSchema(TicketBase):
     
     model_config = ConfigDict(from_attributes=True)
 
+class TicketResponseClassificationSchema(BaseModel):
+    id: int = Field(...)
+    category: str | None = None
+    priority: int | None = None
+
 class TicketUpdateSchema(BaseModel):
     title: str | None = Field(None, example="Updated Ticket Title", max_length=255, min_length=5)
     message: str | None = Field(None, example="This is an updated ticket message.", min_length=10)
