@@ -42,7 +42,7 @@ async def get_classification_ticket(db: AsyncSession, ticket_id: int) -> TicketR
     classfication_ticket = TicketResponseClassificationSchema(
         id=ticket.id,
         category= db_category.category_name,
-        priority=db_priority.id
+        priority=db_priority.priority_name
     )
 
     return classfication_ticket

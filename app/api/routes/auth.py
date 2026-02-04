@@ -1,5 +1,6 @@
 import token
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from app.services.auth import register
 from app.db.dependencies import get_db
 from app.schemas.auth import LoginRequest, RefreshTokenRequest, RegisterRequest, TokenResponse
@@ -19,10 +20,11 @@ async def register_endpoint(
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    data : LoginRequest,
+    data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    token , refresh_token = await authenticate_user(db, data)
+    login_data = LoginRequest(email=data.username, password=data.password)
+    token , refresh_token = await authenticate_user(db, login_data)
     return {"access_token": token, "refresh_token": refresh_token}
 
 @router.post("/refresh", response_model=TokenResponse)

@@ -25,7 +25,7 @@ class TicketResponseSchema(TicketBase):
 class TicketResponseClassificationSchema(BaseModel):
     id: int = Field(...)
     category: str | None = None
-    priority: int | None = None
+    priority: str | None = None
 
 class TicketUpdateSchema(BaseModel):
     title: str | None = Field(None, example="Updated Ticket Title", max_length=255, min_length=5)
